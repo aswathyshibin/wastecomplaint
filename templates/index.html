@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Waste Analyst | Smart Municipality</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Waste Analyst</h1>
+            <p>Advanced AI-powered complaint prioritization for cleaner cities.</p>
+        </header>
+
+        <form id="complaintForm" class="complaint-form">
+            <div class="input-group">
+                <label for="complaint">Describe the waste-related issue</label>
+                <textarea 
+                    id="complaint" 
+                    name="complaint" 
+                    placeholder="e.g. Garbage not collected for 3 days near Main Street..."
+                    required
+                ></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span id="btnText">Analyze Complaint</span>
+                <div id="loader" class="loader"></div>
+            </button>
+        </form>
+
+        <!-- Dynamic Result Card -->
+        <div id="resultCard" class="result-card">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Category</span>
+                    <span id="resCategory" class="stat-value">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Priority</span>
+                    <span id="resPriority" class="stat-value">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Score</span>
+                    <span id="resScoreValue" class="stat-value">0.00</span>
+                </div>
+            </div>
+
+            <div class="score-bar-container">
+                <div id="scoreBar" class="score-bar"></div>
+            </div>
+            
+            <p id="errorMsg" style="color: #f43f5e; text-align: center; margin-top: 1rem; display: none;"></p>
+        </div>
+    </div>
+
+    <footer>
+        Powered by <strong>Grok AI</strong> &bull; Developed for <strong>Acadeno Technologies</strong>
+    </footer>
+
+    <script>
+        const form = document.getElementById('complaintForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const loader = document.getElementById('loader');
+        const resultCard = document.getElementById('resultCard');
+        
+        // Result elements
+        const resCategory = document.getElementById('resCategory');
+        const resPriority = document.getElementById('resPriority');
+        const resScoreValue = document.getElementById('resScoreValue');
+        const scoreBar = document.getElementById('scoreBar');
+        const errorMsg = document.getElementById('errorMsg');
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            // UI Loading State
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            loader.style.display = 'block';
+            resultCard.classList.remove('visible');
+            errorMsg.style.display = 'none';
+
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.error && !result.category) {
+                    errorMsg.innerText = "Error: " + result.error;
+                    errorMsg.style.display = 'block';
+                    resultCard.classList.add('visible');
+                } else {
+                    // Update UI with results
+                    resCategory.innerText = result.category || "General";
+                    resPriority.innerText = result.priority_level || "Medium";
+                    
+                    // Priority Color Class
+                    resPriority.className = 'stat-value';
+                    const p = (result.priority_level || "").toLowerCase();
+                    if (p.includes('high')) resPriority.classList.add('priority-high');
+                    else if (p.includes('medium')) resPriority.classList.add('priority-medium');
+                    else resPriority.classList.add('priority-low');
+
+                    const score = parseFloat(result.priority_score || 0);
+                    resScoreValue.innerText = score.toFixed(2);
+                    
+                    // Show card then animate bar
+                    resultCard.classList.add('visible');
+                    setTimeout(() => {
+                        scoreBar.style.width = (score * 100) + '%';
+                    }, 100);
+                }
+
+            } catch (err) {
+                console.error(err);
+                errorMsg.innerText = "Failed to connect to AI Service.";
+                errorMsg.style.display = 'block';
+                resultCard.classList.add('visible');
+            } finally {
+                submitBtn.disabled = false;
+                btnText.style.display = 'block';
+                loader.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
